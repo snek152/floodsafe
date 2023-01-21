@@ -13,5 +13,16 @@ def download_image():
         f.write(response.content)
 
 
-download_image()
+def get_weather_data():
+    url = " https://api.ambeedata.com/weather/history/by-lat-lng?lat=12&lng=77&from=2023-01-20 00:00:00&to=2023-01-21 00:00:00"
+    response = requests.get(url, headers={
+        "x-api-key": os.environ.get("RAPID_API_KEY"),
+        "Content-Type": "application/json"
+    })
+
+    return response.json()
+
+
+print(get_weather_data())
+# download_image()
 # print(get_data())
