@@ -3,6 +3,7 @@ import json
 import dotenv
 import os
 import csv
+import datetime
 
 dotenv.load_dotenv(".env")
 
@@ -15,9 +16,11 @@ def download_image():
 
 
 def get_weather_data(year, month, day, hour, lat, lng):
-    url = f"https://api.ambeedata.com/weather/history/by-lat-lng?lat={lat}&lng={lng}&from={year}-{month}-{day} {hour}:00:00&to={year}-{month}-{day} {hour}:00:00"
+
+    date = datetime.datetime(year, month, day, hour)
+    url = f"https://api.ambeedata.com/weather/history/by-lat-lng?lat={lat}&lng={lng}&from={date}&to={date}"
     response = requests.get(url, headers={
-        "x-api-key": os.environ.get("RAPID_API_KEY"),
+        "x-api-key": str(os.environ.get("RAPID_API_KEY")),
         "Content-Type": "application/json"
     })
 
@@ -26,13 +29,14 @@ def get_weather_data(year, month, day, hour, lat, lng):
 
 weather_data = []
 with open("weather_data.txt") as file:
-    lines = file.readlines()[:100] #starting slow
+    lines = file.readlines()[:10]  # starting slow
     for line in lines:
         numbers = line.split()
-        year, month, day, hour, lat, lng = int(numbers[1]), int(numbers[2]), int(numbers[3]), int(numbers[4]), float(numbers[5]), float(numbers[6])
+        year, month, day, hour, lat, lng = int(numbers[1]), int(numbers[2]), int(
+            numbers[3]), int(numbers[4]), float(numbers[5]), float(numbers[6])
         weather_data.append(get_weather_data(year, month, day, hour, lat, lng))
 
-print("loading successful")
+print("loading successful", weather_data)
 
 
 # commenting so that i dont mess up!
