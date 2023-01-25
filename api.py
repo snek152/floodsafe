@@ -4,27 +4,21 @@ import dotenv
 import os
 import csv
 import datetime
+from typings import APIResponse
 
 dotenv.load_dotenv(".env")
 
 
-
-
-
-
-# idk how to get the key i think there's a key needed cuz otherwise the data only goes 
+# idk how to get the key i think there's a key needed cuz otherwise the data only goes
 # up to the past month but it doesn't offer a key anywhere??
 
-def get_weather_data(year, month, day, lat, lng):
+def get_weather_data(year: int, month: int, day: int, lat: float, lng: float) -> APIResponse:
     start_date = datetime.datetime(year, month, day)
     end_date = start_date + datetime.timedelta(days=1)
     url = f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lng}&start_date={start_date.strftime('%Y-%m-%d')}&end_date={end_date.strftime('%Y-%m-%d')}&hourly=temperature_2m"
     response = requests.get(url)
+    print(type(response.json()))
     return response.json()
-
-
-
-    
 
 
 # commenting so that i dont mess up!
