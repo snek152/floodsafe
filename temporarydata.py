@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
 # to upload images only
 def data_loader_with_ar():
     lineCount = 0
@@ -27,10 +26,9 @@ def data_loader_with_ar():
             date = datetime.datetime(year, month, day, hour)
             date_string = date.strftime("%Y-%m-%d T%H:%M:%SZ")
             pathname = f"images/image_{year}_{month}_{day}_{hour}_{lat}_{lng}.png"
-            
+
 #            weather_data = get_weather_data(year, month, day, lat, lng)
             save_image(
                 lat, lng, zoom=8, date=date_string, pathname=pathname)
             print(lineCount)
-            #yield weather_data, pathname, iwv
-            
+            # yield weather_data, pathname, iwv

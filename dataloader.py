@@ -10,20 +10,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
-
 def data_loader_with_ar():
-    lineCount = 0
     with open("processed_weather_data.txt") as file:
         for line in file:
-            lineCount += 1
-            if lineCount >= 10:
-                break
             numbers = line.split()
             year, month, day, hour, lat, lng, iwv = int(numbers[1]), int(numbers[2]), int(
                 numbers[3]), int(numbers[4]), float(numbers[5]), float(numbers[6])-360, float(numbers[10])
-            if year < 2001:
-                break
             date = datetime.datetime(year, month, day, hour)
             date_string = date.strftime("%Y-%m-%d T%H:%M:%SZ")
             pathname = f"images/image_{year}_{month}_{day}_{hour}_{lat}_{lng}.png"
@@ -31,38 +23,38 @@ def data_loader_with_ar():
             weather_data = api.get_weather_data(year, month, day, lat, lng)
             scraper.save_image(
                 lat, lng, zoom=8, date=date_string, pathname=pathname)
-            yield weather_data, pathname, iwv
-    
+            yield weather_data, pathname
+
 
 def data_loader_with_no_ar():
-    
-    
-    lat, long = tuple(zip(np.random.uniform(-90., 90., 1),
-    np.random.uniform(-180., 180., 1)))[0]
-    iwv = np.random.uniform(0, 100)
-    year = np.random.randint(2001, 2021)
-    month = np.random.randint(1, 13)
-    day = np.random.randint(1, 29)
-    hour = np.random.randint(0, 24)
-    date = datetime.datetime(year, month, day, hour)
+    with open("processed_weather_data.txt") as file:
+        for _ in file:
+            lat, long = tuple(zip(np.random.uniform(-90., 90., 1),
+                                  np.random.uniform(-180., 180., 1)))[0]
+            year = np.random.randint(2002, 2023)
+            month = np.random.randint(1, 13)
+            day = np.random.randint(1, 29)
+            hour = np.random.randint(0, 24)
+            date = datetime.datetime(year, month, day, hour)
 
-    date_string = date.strftime("%Y-%m-%d T%H:%M:%SZ")
-    pathname = f"images/image_{year}_{month}_{day}_{hour}_{lat}_{long}.png"
-
-    scraper.save_image(lat, long, zoom=8, date=date_string, pathname=pathname)
+            date_string = date.strftime("%Y-%m-%d T%H:%M:%SZ")
+            pathname = f"images/image_{year}_{month}_{day}_{hour}_{lat}_{long}.png"
+            weather_data = api.get_weather_data(year, month, day, lat, long)
+            scraper.save_image(lat, long, zoom=8,
+                               date=date_string, pathname=pathname)
+            yield weather_data, pathname
 
 
 def save_data():
     df = pd.DataFrame(
-        columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "iwv", "ar"])
+        columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar"])
     with open("processed_weather_data.txt") as file:
-        count = 0
-        for data, image, iwv in data_loader_with_ar():
+        for data, image in data_loader_with_ar():
             df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
-                            "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "iwv": iwv, "ar": 1}, ignore_index=True)
-            count += 1
-            if count >= 2:
-                break
+                            "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 1}, ignore_index=True)
+        for data, image in data_loader_with_no_ar():
+            df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
+                            "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 0}, ignore_index=True)
     df.to_csv("data.csv")
 
 
