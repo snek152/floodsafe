@@ -20,6 +20,8 @@ def data_loader_with_ar():
             date_string = date.strftime("%Y-%m-%d T%H:%M:%SZ")
             pathname = f"images/image_{year}_{month}_{day}_{hour}_{lat}_{lng}.png"
             print(lat, lng, iwv)
+            if os.path.exists(pathname):
+                continue
             weather_data = api.get_weather_data(year, month, day, lat, lng)
             scraper.save_image(
                 lat, lng, zoom=8, date=date_string, pathname=pathname)
@@ -48,13 +50,22 @@ def data_loader_with_no_ar():
 def save_data():
     df = pd.DataFrame(
         columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar"])
-    with open("processed_weather_data.txt") as file:
-        for data, image in data_loader_with_ar():
+    for data, image in data_loader_with_ar():
+        try:
+            if (df.loc[df["image"] == image].shape[0] > 0):
+                continue
             df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
                             "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 1}, ignore_index=True)
-        for data, image in data_loader_with_no_ar():
+        except:
+            print("error")
+    for data, image in data_loader_with_no_ar():
+        try:
+            if (df.loc[df["image"] == image].shape[0] > 0):
+                continue
             df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
                             "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 0}, ignore_index=True)
+        except:
+            print("error")
     df.to_csv("data.csv")
 
 
@@ -73,7 +84,7 @@ def show_data():
 #         for line in file:
 #             numbers = line.split()
 #             year, iwv = int(numbers[1]), float(numbers[10])
-#             if year > 2002:
+#             if year > 2002 and iwv > 30.0:
 #                 lines.append({"year": year, "iwv": iwv, "line": line})
 #         lines.sort(key=operator.itemgetter("iwv", "year"))
 #         for line in lines:
@@ -82,4 +93,4 @@ def show_data():
 # for weather_data in data_loader():
 #     print(weather_data)
 save_data()
-show_data()
+# show_data()
