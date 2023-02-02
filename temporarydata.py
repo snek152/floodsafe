@@ -5,12 +5,15 @@ import operator
 import pandas as pd
 import cv2
 import os
+import glob
 # from typings import APIResponse
 import numpy as np
 import matplotlib.pyplot as plt
-
+from PIL import Image
 
 # to upload images only
+
+
 def data_loader_with_ar():
     lineCount = 0
     with open("processed_weather_data.txt") as file:
@@ -32,3 +35,15 @@ def data_loader_with_ar():
                 lat, lng, zoom=8, date=date_string, pathname=pathname)
             print(lineCount)
             # yield weather_data, pathname, iwv
+
+
+def cleanup_images():
+    for filename in glob.glob('/Users/snehilk/Desktop/Coding/floodsafe/images/*.png'):
+        im = Image.open(filename)
+        pix = list(im.getdata())
+        if set(pix) == {(0, 0, 0, 255)}:
+            os.remove(filename)
+        print('done')
+
+
+cleanup_images()

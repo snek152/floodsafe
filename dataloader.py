@@ -25,7 +25,7 @@ def data_loader_with_ar():
             if os.path.exists(pathname):
                 print("file exists")
             else:
-                break
+                continue
                 # scraper.save_image(
                 #     lat, lng, zoom=8, date=date_string, pathname=pathname)
             yield weather_data, pathname
