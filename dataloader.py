@@ -50,22 +50,22 @@ def data_loader_with_no_ar():
 def save_data():
     df = pd.DataFrame(
         columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar"])
-    for data, image in data_loader_with_ar():
-        try:
+    try:
+        for data, image in data_loader_with_ar():
             if (df.loc[df["image"] == image].shape[0] > 0):
                 continue
             df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
                             "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 1}, ignore_index=True)
-        except:
-            print("error")
-    for data, image in data_loader_with_no_ar():
-        try:
+    except Exception as e:
+        print(e)
+    try:
+        for data, image in data_loader_with_no_ar():
             if (df.loc[df["image"] == image].shape[0] > 0):
                 continue
             df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
                             "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 0}, ignore_index=True)
-        except:
-            print("error")
+    except Exception as e:
+        print(e)
     df.to_csv("data.csv")
 
 

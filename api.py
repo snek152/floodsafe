@@ -32,6 +32,5 @@ def get_weather_data(year: int, month: int, day: int, lat: float, lng: float):
 #     return response.json()
 
 
-# print(get_weather_data())
 # download_image()
 # print(get_data())
