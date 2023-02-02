@@ -48,8 +48,9 @@ def data_loader_with_no_ar():
 
 
 def save_data():
-    df = pd.DataFrame(
-        columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar"])
+    # df = pd.DataFrame(
+    #     columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar"])
+    df = pd.read_csv("data.csv")
     try:
         for data, image in data_loader_with_ar():
             if (df.loc[df["image"] == image].shape[0] > 0):
@@ -93,4 +94,9 @@ def show_data():
 # for weather_data in data_loader():
 #     print(weather_data)
 save_data()
+# df = pd.read_csv("data.csv")
+# df = df[df["ar"] == 1]
+# df = df.drop(columns=["Unnamed: 0"])
+# df.to_csv("data.csv")
+# df.to_csv("data.csv")
 # show_data()
