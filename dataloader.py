@@ -20,11 +20,14 @@ def data_loader_with_ar():
             date_string = date.strftime("%Y-%m-%d T%H:%M:%SZ")
             pathname = f"images/image_{year}_{month}_{day}_{hour}_{lat}_{lng}.png"
             print(lat, lng, iwv)
-            if os.path.exists(pathname):
-                continue
+
             weather_data = api.get_weather_data(year, month, day, lat, lng)
-            scraper.save_image(
-                lat, lng, zoom=8, date=date_string, pathname=pathname)
+            if os.path.exists(pathname):
+                print("file exists")
+            else:
+                break
+                # scraper.save_image(
+                #     lat, lng, zoom=8, date=date_string, pathname=pathname)
             yield weather_data, pathname
 
 
@@ -48,13 +51,13 @@ def data_loader_with_no_ar():
 
 
 def save_data():
-    # df = pd.DataFrame(
-    #     columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar"])
-    df = pd.read_csv("data.csv")
+    df = pd.DataFrame(
+        columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar"])
+    # df = pd.read_csv("data.csv")
     try:
         for data, image in data_loader_with_ar():
-            if (df.loc[df["image"] == image].shape[0] > 0):
-                continue
+            # if (df.loc[df["image"] == image].shape[0] > 0):
+            #     continue
             df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
                             "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 1}, ignore_index=True)
     except Exception as e:
