@@ -45,9 +45,9 @@ def cleanup_images():
     #         os.remove(filename)
     #     print('done')
     df = pd.read_pickle("data.pkl")
+    print(df.head())
     for filename in glob.glob('/Users/snehilk/Desktop/Coding/floodsafe/images/*.png'):
-        print(df.loc(df["image"] == filename).shape[0])
-        if df.loc[df["image"] == filename].shape[0] <= 0:
+        if df.loc[df["image"] == "images/"+filename.split("/")[-1]].shape[0] <= 0:
             os.remove(filename)
             print("removed")
         print('done')
