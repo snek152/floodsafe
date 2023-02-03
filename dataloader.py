@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def data_loader_with_ar():
+def data_loader_with_ar(df):
     with open("processed_weather_data.txt") as file:
         for line in file:
             numbers = line.split()
@@ -21,14 +21,14 @@ def data_loader_with_ar():
             pathname = f"images/image_{year}_{month}_{day}_{hour}_{lat}_{lng}.png"
             print(lat, lng, iwv)
 
-            weather_data = api.get_weather_data(year, month, day, lat, lng)
-            if os.path.exists(pathname):
+            if os.path.exists(pathname) and df.loc[df["image"] == pathname].shape[0] <= 0:
                 print("file exists")
             else:
                 continue
                 # scraper.save_image(
                 #     lat, lng, zoom=8, date=date_string, pathname=pathname)
-            yield weather_data, pathname
+            weather_data = api.get_weather_data(year, month, day, lat, lng)
+            yield weather_data, pathname, hour
 
 
 def data_loader_with_no_ar():
@@ -51,35 +51,37 @@ def data_loader_with_no_ar():
 
 
 def save_data():
-    df = pd.DataFrame(
-        columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar"])
-    # df = pd.read_csv("data.csv")
+    # df = pd.DataFrame(
+    #     columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar", "hour"])
+    df = pd.read_pickle("data.pkl")
     try:
-        for data, image in data_loader_with_ar():
+        for data, image, hour in data_loader_with_ar(df):
             # if (df.loc[df["image"] == image].shape[0] > 0):
             #     continue
             df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
-                            "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 1}, ignore_index=True)
+                            "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"][hour-1], "temperature_2m": data["hourly"]["temperature_2m"][hour-1], "ar": 1, "hour": hour}, ignore_index=True)
     except Exception as e:
         print(e)
-    try:
-        for data, image in data_loader_with_no_ar():
-            if (df.loc[df["image"] == image].shape[0] > 0):
-                continue
-            df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
-                            "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 0}, ignore_index=True)
-    except Exception as e:
-        print(e)
-    df.to_csv("data.csv")
+    # try:
+    #     for data, image in data_loader_with_no_ar():
+    #         if (df.loc[df["image"] == image].shape[0] > 0):
+    #             continue
+    #         df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
+    #                         "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"], "temperature_2m": data["hourly"]["temperature_2m"], "ar": 0}, ignore_index=True)
+    # except Exception as e:
+    #     print(e)
+    df.to_pickle("data.pkl")
 
 
 def show_data():
-    df = pd.read_csv("data.csv")
-    for index, row in df.iterrows():
-        image = cv2.imread(row["image"])
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        plt.imshow(image)
-        plt.show()
+    df = pd.read_pickle("data.pkl")
+    print(len(df))
+    # df = pd.read_csv("data.csv")
+    # for index, row in df.iterrows():
+    #     image = cv2.imread(row["image"])
+    #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    #     plt.imshow(image)
+    #     plt.show()
 
 
 # with open("weather_data.txt") as file:

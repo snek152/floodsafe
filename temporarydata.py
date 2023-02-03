@@ -38,11 +38,18 @@ def data_loader_with_ar():
 
 
 def cleanup_images():
+    # for filename in glob.glob('/Users/snehilk/Desktop/Coding/floodsafe/images/*.png'):
+    #     im = Image.open(filename)
+    #     pix = list(im.getdata())
+    #     if set(pix) == {(0, 0, 0, 255)}:
+    #         os.remove(filename)
+    #     print('done')
+    df = pd.read_pickle("data.pkl")
     for filename in glob.glob('/Users/snehilk/Desktop/Coding/floodsafe/images/*.png'):
-        im = Image.open(filename)
-        pix = list(im.getdata())
-        if set(pix) == {(0, 0, 0, 255)}:
+        print(df.loc(df["image"] == filename).shape[0])
+        if df.loc[df["image"] == filename].shape[0] <= 0:
             os.remove(filename)
+            print("removed")
         print('done')
 
 
