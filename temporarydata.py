@@ -46,11 +46,15 @@ def cleanup_images():
     #     print('done')
     df = pd.read_pickle("data.pkl")
     print(df.head())
-    for filename in glob.glob('/Users/snehilk/Desktop/Coding/floodsafe/images/*.png'):
-        if df.loc[df["image"] == "images/"+filename.split("/")[-1]].shape[0] <= 0:
+    for filename in glob.glob('/Users/snehilk/Desktop/Coding/floodsafe/no_ar_images/*.png'):
+        if df.loc[df["image"] == "no_ar_images/"+filename.split("/")[-1]].shape[0] <= 0:
             os.remove(filename)
             print("removed")
         print('done')
 
 
 cleanup_images()
+# for i in range(10):
+#     print(i)
+#     __import__("time").sleep(0.5)
+# __import__("time").sleep(2)
