@@ -108,10 +108,10 @@ def show_data():
 
 # for weather_data in data_loader():
 #     print(weather_data)
-save_data()
+# save_data()
 # df = pd.read_csv("data.csv")
 # df = df[df["ar"] == 1]
 # df = df.drop(columns=["Unnamed: 0"])
 # df.to_csv("data.csv")
 # df.to_csv("data.csv")
-# show_data()
+show_data()

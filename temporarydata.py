@@ -45,12 +45,13 @@ def cleanup_images():
     #         os.remove(filename)
     #     print('done')
     df = pd.read_pickle("data.pkl")
-    print(df.head())
     for filename in glob.glob('/Users/snehilk/Desktop/Coding/floodsafe/no_ar_images/*.png'):
         if df.loc[df["image"] == "no_ar_images/"+filename.split("/")[-1]].shape[0] <= 0:
             os.remove(filename)
             print("removed")
-        print('done')
+        # print('done')
+    # remove entries that have no image
+
 
 
 cleanup_images()
