@@ -27,10 +27,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # print(size)
 
 class MyDataset(Dataset):
-    def __init__(self, folder_path, n):
+    def __init__(self, folder_path, n, device):
         self.folder_path = folder_path
         self.images = []
         self.labels = []
+        self.device = device
         for i, filename in enumerate(os.listdir(folder_path)):
             if filename.endswith('.png'):
                 image_path = os.path.join(folder_path, filename)
@@ -48,7 +49,7 @@ class MyDataset(Dataset):
         image = self.images[index]
         tensor = transforms.ToTensor()(image)
         label = self.labels[index]
-        return tensor, label
+        return tensor.to(self.device), label
 
     def collate_fn(self, batch):
         data = [item[0] for item in batch]
@@ -59,22 +60,28 @@ class MyDataset(Dataset):
 
 
 
-my_dataset = MyDataset('dataset/train_images', 924)
-my_dataloader = DataLoader(my_dataset, batch_size=64, shuffle=True, collate_fn=my_dataset.collate_fn)
 
-my_valid_dataset = MyDataset('dataset/val_images', 116)
+my_dataset = MyDataset('/dataset/test_images', 924, device)
+my_dataloader = DataLoader(my_dataset, batch_size=16, shuffle=True, collate_fn=my_dataset.collate_fn)
+
+my_valid_dataset = MyDataset('dataset/val_images', 116, device)
 validloader = DataLoader(my_valid_dataset, batch_size=16, shuffle=True, collate_fn=my_valid_dataset.collate_fn)
 
 
 cnn = torchvision.models.resnet18(weights = None, num_classes = 1)
+cnn.fc = nn.Linear(512, 100) #replaces the last fully connected layer with a small linear one cuz its taking up too much memory
+
 if torch.cuda.is_available():
     cnn.cuda()
+    print("yes there is a cuda")
+else:
+    print("no cuda")
+    
 # print(cnn)
 
 
 optimizer = torch.optim.SGD(cnn.parameters(), lr=0.01)
 loss_func = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([1.0]))
-
 cnn.train()
 
 for epoch in range(10):
@@ -89,6 +96,7 @@ for epoch in range(10):
         # forward pass!
         inp, labels = batch
         inp, labels = inp.to(device), labels.to(device)
+        cnn.to(device)
 
         out = cnn(inp)
         labels = labels.view(-1, 1)  # reshapes labels to fit properly!
@@ -119,13 +127,3 @@ for epoch in range(10):
     print(loss_sum / total)
     valid_loss_avg = valid_sum / valid_total
     print(valid_loss_avg)
-
-
-
-
-
-
-
-
-
-
