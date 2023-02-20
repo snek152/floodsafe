@@ -62,7 +62,7 @@ class MyDataset(Dataset):
 
 
 my_dataset = MyDataset('dataset/train_images', 924, device)
-my_dataloader = DataLoader(my_dataset, batch_size=16, shuffle=True, collate_fn=my_dataset.collate_fn)
+my_dataloader = DataLoader(my_dataset, batch_size=64, shuffle=True, collate_fn=my_dataset.collate_fn)
 
 my_valid_dataset = MyDataset('dataset/val_images', 116, device)
 validloader = DataLoader(my_valid_dataset, batch_size=16, shuffle=True, collate_fn=my_valid_dataset.collate_fn)
@@ -85,12 +85,15 @@ optimizer = torch.optim.SGD(cnn.parameters(), lr=0.01)
 loss_func = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([1.0]))
 cnn.train()
 
-for epoch in range(10):
+
+
+min_avg_loss = 10000000000000
+
+for epoch in range(30):
     print("EPOCH # " + str(epoch))
     loss_sum = 0
     total = 0
-    valid_sum = 0
-    valid_total = 0
+
     for batch in tqdm(my_dataloader):
         optimizer.zero_grad()
 
@@ -110,21 +113,25 @@ for epoch in range(10):
         loss_sum += loss
         total += 1
 
-        #eval using validation dataset
-        valid_loss = 0.0
-        cnn.eval()     # optional on non model-specific layers aka ours
-        valid_sum = 0
-        valid_total = 0
-        for data, labels in validloader:
-            if torch.cuda.is_available():
-                data, labels = data.cuda(), labels.cuda()
-            target = cnn(data)
-            labels = labels.view(-1, 1)  # Reshape labels to [batch_size, 1]
-            lo = loss_func(target, labels.float())
-            valid_sum += lo
-            valid_total += 1
-        cnn.train()
+    #val using validation dataset
+    valid_loss = 0.0
+    cnn.eval()     # optional on non model-specific layers aka ours
+    valid_sum = 0
+    valid_total = 0
+    for data, labels in validloader:
+        if torch.cuda.is_available():
+            data, labels = data.cuda(), labels.cuda()
+        target = cnn(data)
+        labels = labels.view(-1, 1)  # Reshape labels to [batch_size, 1]
+        lo = loss_func(target, labels.float())
+        valid_sum += lo
+        valid_total += 1
+
+    cnn.train()
 
     print(loss_sum / total)
     valid_loss_avg = valid_sum / valid_total
     print(valid_loss_avg)
+    if (valid_loss_avg < min_avg_loss):
+        min_avg_loss = valid_loss_avg
+        torch.save(cnn, 'ay.pt')
