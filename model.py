@@ -61,7 +61,7 @@ class MyDataset(Dataset):
 
 
 
-my_dataset = MyDataset('/dataset/test_images', 924, device)
+my_dataset = MyDataset('dataset/train_images', 924, device)
 my_dataloader = DataLoader(my_dataset, batch_size=16, shuffle=True, collate_fn=my_dataset.collate_fn)
 
 my_valid_dataset = MyDataset('dataset/val_images', 116, device)
@@ -69,7 +69,7 @@ validloader = DataLoader(my_valid_dataset, batch_size=16, shuffle=True, collate_
 
 
 cnn = torchvision.models.resnet18(weights = None, num_classes = 1)
-cnn.fc = nn.Linear(512, 100) #replaces the last fully connected layer with a small linear one cuz its taking up too much memory
+# cnn.fc = nn.Linear(512, 100) #replaces the last fully connected layer with a small linear one cuz its taking up too much memory
 
 if torch.cuda.is_available():
     cnn.cuda()
@@ -78,6 +78,7 @@ else:
     print("no cuda")
     
 # print(cnn)
+
 
 
 optimizer = torch.optim.SGD(cnn.parameters(), lr=0.01)
