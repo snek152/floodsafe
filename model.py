@@ -62,10 +62,10 @@ class MyDataset(Dataset):
 
 
 my_dataset = MyDataset('dataset/train_images', 924, device)
-my_dataloader = DataLoader(my_dataset, batch_size=64, shuffle=True, collate_fn=my_dataset.collate_fn)
+my_dataloader = DataLoader(my_dataset, batch_size=64, shuffle=True, num_workers = 0, collate_fn=my_dataset.collate_fn)
 
 my_valid_dataset = MyDataset('dataset/val_images', 116, device)
-validloader = DataLoader(my_valid_dataset, batch_size=16, shuffle=True, collate_fn=my_valid_dataset.collate_fn)
+validloader = DataLoader(my_valid_dataset, batch_size=32, shuffle=True, num_workers = 0,collate_fn=my_valid_dataset.collate_fn)
 
 
 cnn = torchvision.models.resnet18(weights = None, num_classes = 1)
