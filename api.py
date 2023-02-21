@@ -21,6 +21,9 @@ def get_weather_data(year: int, month: int, day: int, lat: float, lng: float):
     return response.json()
 
 
+# print(get_weather_data(1970, 1, 4, 20.7, 4.2))
+
+
 # commenting so that i dont mess up!
 # def get_weather_data():
 #     url = " https://api.ambeedata.com/weather/history/by-lat-lng?lat=12&lng=77&from=2023-01-20 00:00:00&to=2023-01-21 00:00:00"
