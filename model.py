@@ -56,16 +56,18 @@ class MyDataset(Dataset):
         image = self.images[index]
         tensor_image = transforms.ToTensor()(image)
         weather_data = self.weather_data[index]
-        tensor_data = transforms.ToTensor()(weather_data)
+        tensor_data = torch.tensor(weather_data, dtype=torch.float)
         label = self.labels[index]
         return tensor_image.to(self.device), tensor_data.to(self.device), label
 
     def collate_fn(self, batch):
-        data = [item[0] for item in batch]
-        target = [item[1] for item in batch]
-        data = torch.stack(data, dim=0)
+        images = [item[0] for item in batch]
+        weather_data = [item[1] for item in batch]
+        target = [item[2] for item in batch]
+        images = torch.stack(images, dim=0)
+        weather_data = torch.tensor(weather_data, dtype=torch.float)
         target = torch.tensor(target, dtype=torch.float)
-        return data, target
+        return images, weather_data, target
 
 
 my_dataset = MyDataset(pd.read_pickle("train_data.pkl"), device)
@@ -84,31 +86,43 @@ class Model(nn.Module):
     def __init__(self, num_classes, num_weather_features):
         super(Model, self).__init__()
         self.resnet = torchvision.models.resnet18(pretrained=True)
-        self.resnet.fc = nn.Linear(512, num_classes)
+        self.fc1 = nn.Linear(1000 + num_weather_features, 512)
+        self.fc2 = nn.Linear(512, num_classes)
+        # self.resnet.fc = nn.Linear(512, num_classes)
 
         # Add an additional linear layer for the weather data
-        self.weather_fc = nn.Linear(num_weather_features, 64)
+        # self.weather_fc = nn.Linear(num_weather_features, 64)
 
     def forward(self, x, weather_data):
-        x = self.resnet.conv1(x)
-        x = self.resnet.bn1(x)
-        x = self.resnet.relu(x)
-        x = self.resnet.maxpool(x)
-
-        x = self.resnet.layer1(x)
-        x = self.resnet.layer2(x)
-        x = self.resnet.layer3(x)
-        x = self.resnet.layer4(x)
-
-        x = F.avg_pool2d(x, x.shape[2])
+        x = self.resnet(x)
+        # add two dimensions to match the ResNet output tensor
+        # weather_data = weather_data.unsqueeze(-1)
+        # repeat the weather data tensor to match the ResNet output tensor
+        # weather_data = weather_data.repeat(1, 1)
         x = x.view(x.size(0), -1)
-
-        # Concatenate the weather data to the output of the convolutional layers
-        weather_data = F.relu(self.weather_fc(weather_data))
+        # returning torch.Size([64, 1000]) torch.Size([64, 1]) PLS HELP
+        print(x.shape, weather_data.shape)
         x = torch.cat((x, weather_data), dim=1)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        # x = self.resnet.bn1(x)
+        # x = self.resnet.relu(x)
+        # x = self.resnet.maxpool(x)
 
-        x = self.resnet.fc(x)
-        return x
+        # x = self.resnet.layer1(x)
+        # x = self.resnet.layer2(x)
+        # x = self.resnet.layer3(x)
+        # x = self.resnet.layer4(x)
+
+        # x = F.avg_pool2d(x, x.shape[2])
+        # x = x.view(x.size(0), -1)
+
+        # # Concatenate the weather data to the output of the convolutional layers
+        # weather_data = F.relu(self.weather_fc(weather_data))
+        # x = torch.cat((x, weather_data), dim=1)
+
+        # x = self.resnet.fc(x)
+        # return x
 
 # if torch.cuda.is_available():
 #     cnn.cuda()
