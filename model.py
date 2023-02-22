@@ -40,7 +40,7 @@ class MyDataset(Dataset):
             image = Image.open(row['image'])
             image = image.convert('RGB')
             self.images.append(image)
-            self.weather_data.append(row['temperature_2m'])
+            self.weather_data.append(np.array([row['temperature_2m']]))
             self.labels.append(row['ar'])
         # for i, filename in enumerate(os.listdir(folder_path)):
         #     if filename.endswith('.png'):
@@ -59,7 +59,7 @@ class MyDataset(Dataset):
         image = self.images[index]
         tensor_image = transforms.ToTensor()(image)
         weather_data = self.weather_data[index]
-        tensor_data = torch.tensor(weather_data, dtype=torch.float)
+        tensor_data = transforms.ToTensor()(weather_data)
         label = self.labels[index]
         return tensor_image.to(self.device), tensor_data.to(self.device), label
 
@@ -68,7 +68,7 @@ class MyDataset(Dataset):
         weather_data = [item[1] for item in batch]
         target = [item[2] for item in batch]
         images = torch.stack(images, dim=0)
-        weather_data = torch.tensor(weather_data, dtype=torch.float)
+        weather_data = torch.stack(weather_data, dim=0)
         target = torch.tensor(target, dtype=torch.float)
         return images, weather_data, target
 
