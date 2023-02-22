@@ -18,7 +18,6 @@ from torch import device
 import pandas as pd
 
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -59,16 +58,19 @@ class MyDataset(Dataset):
         image = self.images[index]
         tensor_image = transforms.ToTensor()(image)
         weather_data = self.weather_data[index]
-        tensor_data = transforms.ToTensor()(weather_data)
+        # weather_data.reshape(-1, 1)
+        # tensor_data = transforms.ToTensor()(weather_data)
+        tensor_data = weather_data
         label = self.labels[index]
-        return tensor_image.to(self.device), tensor_data.to(self.device), label
+        return tensor_image.to(self.device), tensor_data, label
 
     def collate_fn(self, batch):
         images = [item[0] for item in batch]
         weather_data = [item[1] for item in batch]
         target = [item[2] for item in batch]
         images = torch.stack(images, dim=0)
-        weather_data = torch.stack(weather_data, dim=0)
+        weather_data = torch.tensor(
+            np.array(weather_data).reshape(-1, 1), dtype=torch.float)
         target = torch.tensor(target, dtype=torch.float)
         return images, weather_data, target
 
@@ -90,7 +92,8 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.resnet = torchvision.models.resnet18(pretrained=True)
         self.fc1 = nn.Linear(1000 + num_weather_features, 512)
-        self.fc2 = nn.Linear(512, num_classes)
+        self.fc2 = nn.Linear(512, 10)
+        self.fc3 = nn.Linear(10, num_classes)
         # self.resnet.fc = nn.Linear(512, num_classes)
 
         # Add an additional linear layer for the weather data
@@ -104,10 +107,10 @@ class Model(nn.Module):
         # weather_data = weather_data.repeat(1, 1)
         x = x.view(x.size(0), -1)
         # returning torch.Size([64, 1000]) torch.Size([64, 1]) PLS HELP
-        print(x.shape, weather_data.shape)
         x = torch.cat((x, weather_data), dim=1)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
+        x = self.fc3(x)
         # x = self.resnet.bn1(x)
         # x = self.resnet.relu(x)
         # x = self.resnet.maxpool(x)
@@ -125,7 +128,7 @@ class Model(nn.Module):
         # x = torch.cat((x, weather_data), dim=1)
 
         # x = self.resnet.fc(x)
-        # return x
+        return x
 
 # if torch.cuda.is_available():
 #     cnn.cuda()
@@ -138,7 +141,7 @@ class Model(nn.Module):
 
 cnn = Model(num_classes=2, num_weather_features=1).to(device)
 optimizer = torch.optim.SGD(cnn.parameters(), lr=0.01)
-loss_func = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([1.0]))
+loss_func = nn.CrossEntropyLoss()
 # cnn.train()
 
 
@@ -159,6 +162,10 @@ for epoch in range(30):
 
         out = cnn(inp, weather_data)
         # labels = labels.view(-1, 1)  # reshapes labels to fit properly!
+
+        # apparently we need this idk
+        labels = labels.long()
+
         loss = loss_func(out, labels)
 
         # backward pass!!
@@ -206,29 +213,27 @@ for epoch in range(30):
         torch.save(cnn.state_dict(), 'best_cnn.pt')
 
 
-
-
 network_answers = []
 true_answers = []
 cnn = cnn.eval()
- 
+
 right = 0
 total = 0
 wrong = 0
- 
+
 net_pred = []
 true_pred = []
 for inp, weather_data, labels in my_dataloader:
- 
- with torch.no_grad():
-   out = cnn(inp, weather_data)
-   
-   sigmoid_layer = torch.nn.Sigmoid()
-   predicted = sigmoid_layer(out).cpu().numpy() > 0.5
-  #  predicted = torch.nn.Sigmoid(out, dim=-1).cpu().numpy() > 0.5
-   actual = labels.cpu().numpy() > 0.5
-   net_pred.append(predicted)
-   true_pred.append(actual)
+
+    with torch.no_grad():
+        out = cnn(inp, weather_data)
+
+        sigmoid_layer = torch.nn.Sigmoid()
+        predicted = sigmoid_layer(out).cpu().numpy() > 0.5
+       #  predicted = torch.nn.Sigmoid(out, dim=-1).cpu().numpy() > 0.5
+        actual = labels.cpu().numpy() > 0.5
+        net_pred.append(predicted)
+        true_pred.append(actual)
 
 y_pred = (net_pred)[0]
 y_true = (true_pred)[0]
@@ -249,17 +254,17 @@ false_neg = 0
 print(len(y_true))
 print(len(y_pred))
 for i in range(len(y_true)):
-  pred = np.asarray(y_pred[i])
-  true = np.asarray(y_true[i])
-  for j in range(pred.shape[0]):
-    if pred[j] == true[j] == True: 
-        true_pos += 1
-    elif pred[j] == true[j] == False: 
-        true_neg += 1
-    elif pred[j] == False and true[j] == True: 
-        false_neg += 1
-    elif pred[j] == True and true[j] == False: 
-        false_pos += 1
+    pred = np.asarray(y_pred[i])
+    true = np.asarray(y_true[i])
+    for j in range(pred.shape[0]):
+        if pred[j] == true[j] == True:
+            true_pos += 1
+        elif pred[j] == true[j] == False:
+            true_neg += 1
+        elif pred[j] == False and true[j] == True:
+            false_neg += 1
+        elif pred[j] == True and true[j] == False:
+            false_pos += 1
 
 print(true_pos, false_pos, true_neg, false_neg)
 correct = (true_pos + true_neg) / (true_neg + false_neg + true_pos + false_pos)
@@ -273,4 +278,4 @@ print("f1_score: " + str(f1_score))
 
 labels = ['atmospheric river present']
 
-print(metrics.classification_report(y_true, y_pred, target_names = labels))
+print(metrics.classification_report(y_true, y_pred, target_names=labels))
