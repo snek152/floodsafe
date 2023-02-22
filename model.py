@@ -18,8 +18,8 @@ from torch import device
 import pandas as pd
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps")
 
 # image sizes 600 x 600
 # img = Image.open('images/image_2003_1_8_18_27.5_-112.5.png')
@@ -29,6 +29,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # print(size)
 
 # "image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar", "hour"
+
+
 class MyDataset(Dataset):
     def __init__(self, df: pd.DataFrame, device):
         self.images = []
@@ -92,8 +94,8 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.resnet = torchvision.models.resnet18(pretrained=True)
         self.fc1 = nn.Linear(1000 + num_weather_features, 512)
-        self.fc2 = nn.Linear(512, 10)
-        self.fc3 = nn.Linear(10, num_classes)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, num_classes)
         # self.resnet.fc = nn.Linear(512, num_classes)
 
         # Add an additional linear layer for the weather data
@@ -149,7 +151,7 @@ best_acc = 0.0
 
 for epoch in range(30):
     print("EPOCH # " + str(epoch))
-    loss_sum = 0.0
+
     total = 0
 
     for batch in tqdm(my_dataloader):
@@ -172,9 +174,8 @@ for epoch in range(30):
         loss.backward()
         optimizer.step()
 
-        loss_sum += loss.item()
         total += 1
-        print('[%d, %5d] loss: %.3f' % (epoch + 1, total, loss_sum))
+        print('[%d, %5d] loss: %.3f' % (epoch + 1, total, loss.item()))
 
     # val using validation dataset
     # valid_loss = 0.0
