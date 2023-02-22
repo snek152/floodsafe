@@ -80,6 +80,7 @@ def save_data():
 
 def show_data():
     df = pd.read_pickle("data.pkl")
+    print(df["time"], df["hour"])
     print(len(df))
     print(df.tail())
     print(len(df[df["ar"] == 1]))
@@ -114,4 +115,26 @@ def show_data():
 # df = df.drop(columns=["Unnamed: 0"])
 # df.to_csv("data.csv")
 # df.to_csv("data.csv")
-show_data()
+# show_data()
+
+df = pd.read_pickle("data.pkl")
+if os.path.exists("new_data.pkl"):
+    new_df = pd.read_pickle("new_data.pkl")
+else:
+    new_df = pd.DataFrame(columns=["image", "lat", "long", "temperature",
+                                   "humidity", "dewpoint", "precipitation", "ar"])
+
+try:
+    for i, row in df.iterrows():
+        if new_df.loc[new_df["image"] == row["image"]].shape[0] > 0:
+            continue
+        pathname = row["image"]
+        pathname = pathname.split("_")
+        year, month, day, hour, lat, long = int(pathname[1]), int(pathname[2]), int(
+            pathname[3]), int(pathname[4]), row["lat"], row["long"]
+        weather_data = api.get_weather_data(year, month, day, lat, long)
+        new_df.append({"image": row["image"], "lat": lat, "long": long,
+                       "temperature": weather_data["hourly"]["temperature_2m"][hour-1], "humidity": weather_data["hourly"]["relativehumidity_2m"][hour-1], "dewpoint": weather_data["hourly"]["dewpoint_2m"][hour-1], "precipitation": weather_data["hourly"]["precipitation"][hour-1]})
+except Exception as e:
+    print(e)
+new_df.to_pickle("new_data.pkl")
