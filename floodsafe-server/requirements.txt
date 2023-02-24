@@ -1,0 +1,8 @@
+fastapi[all]
+pytorch
+torchvision
+selenium
+pandas
+matplotlib
+scikit-learn
+pillow

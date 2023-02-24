@@ -159,10 +159,10 @@ def train_model():
     train_losses = []
     val_losses = []
 
-    for epoch in range(10):
+    for epoch in range(30):
         gc.collect()
         torch.cuda.empty_cache()
-        print("EPOCH # " + str(epoch))
+        print("EPOCH # " + str(epoch+1))
 
         total = 0
         t_losses = []
@@ -236,9 +236,8 @@ def train_model():
 
         if acc > best_acc:
             best_accuracy = acc
-            torch.save(cnn.state_dict(), 'test_cnn.pt')
+            torch.save(cnn.state_dict(), 'cnn_30.pt')
 
-    print(train_losses, val_losses)
     epochs = range(1, len(train_losses) + 1)
 
     plt.plot(epochs, train_losses, 'g', label='Avg training loss')
@@ -253,7 +252,7 @@ def train_model():
 @torch.no_grad()
 def test_model():
     cnn = Model(num_classes=2, num_weather_features=4).to(device)
-    cnn.load_state_dict(torch.load('test_cnn.pt'))
+    cnn.load_state_dict(torch.load('best_cnn.pt'))
     cnn.eval()
     loss_func = nn.CrossEntropyLoss()
 
@@ -280,10 +279,14 @@ def test_model():
 @torch.no_grad()
 def test_report():
     cnn = Model(num_classes=2, num_weather_features=4).to(device)
-    cnn.load_state_dict(torch.load('test_cnn.pt'))
+    cnn.load_state_dict(torch.load('best_cnn.pt'))
     network_answers = []
     true_answers = []
     cnn.eval()
+
+    dataset = MyDataset(pd.read_pickle("new_data.pkl"), device)
+    loader = DataLoader(dataset, batch_size=1,
+                        shuffle=False, num_workers=0, collate_fn=dataset.collate_fn)
 
     right = 0
     total = 0
@@ -291,12 +294,13 @@ def test_report():
 
     net_pred = []
     true_pred = []
-    for inp, weather_data, labels in my_dataloader:
+
+    for inp, weather_data, labels in loader:
         inp, weather_data, labels = inp.to(
             device), weather_data.to(device), labels.to(device)
         out = cnn(inp, weather_data)
 
-        sigmoid_layer = torch.nn.Sigmoid()
+        sigmoid_layer = torch.nn.Sigmoid().to(device)
         predicted = sigmoid_layer(out).cpu().numpy() > 0.5
     #  predicted = torch.nn.Sigmoid(out, dim=-1).cpu().numpy() > 0.5
         actual = labels.cpu().numpy() > 0.5
@@ -319,11 +323,12 @@ def test_report():
     # print(data["test_labels"])
 
     # y_true = 0 < data["test_labels"]
-    print(len(y_true))
-    print(len(y_pred))
+    print(len(y_true), y_true)
+    print(len(y_pred), y_pred)
     for i in range(len(y_true)):
-        pred = np.asarray(y_pred[i])
-        true = np.asarray(y_true[i])
+        pred = y_pred[i]
+        true = y_true[i]
+        print(pred, true)
         for j in range(pred.shape[0]):
             if pred[j] == true[j] == True:
                 true_pos += 1
@@ -352,11 +357,11 @@ def test_report():
 
 @torch.no_grad()
 def predict_data(image_path: str, temp: float, humidity: float, dewpoint: float, precipitation: float):
-    my_model = Model(2, 1)
+    my_model = Model(2, 4)
     my_model.load_state_dict(torch.load("best_cnn.pt"))
     df = pd.DataFrame(columns=["image", "temperature",
                                "humidity", "dewpoint", "precipitation", "ar"])
-    df = df.append({"image": image_path, "temperature_2m": temp, "humidity": humidity,
+    df = df.append({"image": image_path, "temperature": temp, "humidity": humidity,
                    "dewpoint": dewpoint, "precipitation": precipitation, "ar": 0}, ignore_index=True)
     dataset = MyDataset(df, device=torch.device("cpu"))
     loader = DataLoader(dataset, batch_size=1,
@@ -374,5 +379,9 @@ def predict_data(image_path: str, temp: float, humidity: float, dewpoint: float,
 
 # print(predict_data("images/image_2003_1_8_6_27.5_-112.5.png", 20.0, 2.0, 2.0, 2.0))
 if __name__ == "__main__":
-    # train_model()
-    test_model()
+    switcher = {"train": train_model, "test": test_model, "report": test_report, "predict": lambda x: print(
+        predict_data("images/image_2003_1_8_6_27.5_-112.5.png", 20.0, 2.0, 2.0, 2.0))}
+    print(switcher.keys())
+    switcher[input("Enter command "
+                   + str(list(switcher.keys()))
+                   .replace("[", "(").replace("]", ")")+": ")]()

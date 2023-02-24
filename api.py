@@ -1,12 +1,9 @@
 import requests
 import json
-import dotenv
 import os
 import csv
 import datetime
 # from typings import APIResponse
-
-dotenv.load_dotenv(".env")
 
 
 # idk how to get the key i think there's a key needed cuz otherwise the data only goes
