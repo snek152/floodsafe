@@ -1,6 +1,7 @@
 import gc
 import pandas as pd
 from torch import device
+from torch.backends import mps
 from tqdm import tqdm
 import torchvision
 from torchvision import transforms
@@ -262,6 +263,8 @@ def test_model():
 
     loss = 0
     correct = 0
+    tp, tn, fp, fn = 0, 0, 0, 0
+
     for inp, weather_data, labels in loader:
         inp, weather_data, labels = inp.to(
             device), weather_data.to(device), labels.to(device)
@@ -269,11 +272,24 @@ def test_model():
         loss += loss_func(out, labels.long()).item()
         pred = out.argmax(dim=1, keepdim=True)
         correct += pred.eq(labels.view_as(pred)).sum().item()
+        tp += ((pred == 1) & (labels == 1)).sum().item()
+        tn += ((pred == 0) & (labels == 0)).sum().item()
+        fp += ((pred == 1) & (labels == 0)).sum().item()
+        fn += ((pred == 0) & (labels == 1)).sum().item()
+
 
     loss /= len(test_dataset)
     accuracy = 100. * correct / len(test_dataset)
+
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1_score = 2 * precision * recall / (precision + recall)
+    
     print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
         loss, correct, len(test_dataset), accuracy))
+    
+    print('Precision: {:.4f}, Recall: {:.4f}, F1 score: {:.4f}'.format(
+        precision, recall, f1_score))
 
 
 @torch.no_grad()
