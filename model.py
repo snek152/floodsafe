@@ -22,8 +22,9 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
 
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("mps")
-
+device = torch.device("cuda" if torch.cuda.is_available(
+) else "mps" if torch.backends.mps.is_available() else "cpu")
+print(device.type)
 # image sizes 600 x 600
 # img = Image.open('images/image_2003_1_8_18_27.5_-112.5.png')
 # plt.imshow(np.array(img))
@@ -44,7 +45,8 @@ class MyDataset(Dataset):
             image = Image.open(row['image'])
             image = image.convert('RGB')
             self.images.append(image)
-            self.weather_data.append(np.array([row['temperature_2m']]))
+            self.weather_data.append(np.array(
+                [row['temperature'], row["humidity"], row["dewpoint"], row["precipitation"]]))
             self.labels.append(row['ar'])
         # for i, filename in enumerate(os.listdir(folder_path)):
         #     if filename.endswith('.png'):
@@ -75,7 +77,7 @@ class MyDataset(Dataset):
         target = [item[2] for item in batch]
         images = torch.stack(images, dim=0)
         weather_data = torch.tensor(
-            np.array(weather_data).reshape(-1, 1), dtype=torch.float)
+            np.array(weather_data), dtype=torch.float)
         target = torch.tensor(target, dtype=torch.float)
         return images, weather_data, target
 
@@ -97,8 +99,8 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.resnet = torchvision.models.resnet18(pretrained=True)
         self.fc1 = nn.Linear(1000 + num_weather_features, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, num_classes)
+        # self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(512, num_classes)
         # self.resnet.fc = nn.Linear(512, num_classes)
 
         # Add an additional linear layer for the weather data
@@ -114,7 +116,7 @@ class Model(nn.Module):
         # returning torch.Size([64, 1000]) torch.Size([64, 1]) PLS HELP
         x = torch.cat((x, weather_data), dim=1)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        # x = self.fc2(x)
         x = self.fc3(x)
         # x = self.resnet.bn1(x)
         # x = self.resnet.relu(x)
@@ -145,7 +147,7 @@ class Model(nn.Module):
 
 
 def train_model():
-    cnn = Model(num_classes=2, num_weather_features=1).to(device)
+    cnn = Model(num_classes=2, num_weather_features=4).to(device)
     optimizer = torch.optim.SGD(cnn.parameters(), lr=0.01)
     loss_func = nn.CrossEntropyLoss()
     cnn.train()
@@ -157,7 +159,7 @@ def train_model():
     train_losses = []
     val_losses = []
 
-    for epoch in range(2):
+    for epoch in range(10):
         gc.collect()
         torch.cuda.empty_cache()
         print("EPOCH # " + str(epoch))
@@ -247,9 +249,41 @@ def train_model():
     plt.legend()
     plt.show()
 
+
+@torch.no_grad()
+def test_model():
+    cnn = Model(num_classes=2, num_weather_features=4).to(device)
+    cnn.load_state_dict(torch.load('test_cnn.pt'))
+    cnn.eval()
+    loss_func = nn.CrossEntropyLoss()
+
+    test_dataset = MyDataset(pd.read_pickle("test_data.pkl"), device)
+    loader = DataLoader(test_dataset, batch_size=1,
+                        shuffle=False, num_workers=0, collate_fn=test_dataset.collate_fn)
+
+    loss = 0
+    correct = 0
+    for inp, weather_data, labels in loader:
+        inp, weather_data, labels = inp.to(
+            device), weather_data.to(device), labels.to(device)
+        out = cnn(inp, weather_data)
+        loss += loss_func(out, labels.long()).item()
+        pred = out.argmax(dim=1, keepdim=True)
+        correct += pred.eq(labels.view_as(pred)).sum().item()
+
+    loss /= len(test_dataset)
+    accuracy = 100. * correct / len(test_dataset)
+    print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+        loss, correct, len(test_dataset), accuracy))
+
+
+@torch.no_grad()
+def test_report():
+    cnn = Model(num_classes=2, num_weather_features=4).to(device)
+    cnn.load_state_dict(torch.load('test_cnn.pt'))
     network_answers = []
     true_answers = []
-    cnn = cnn.eval()
+    cnn.eval()
 
     right = 0
     total = 0
@@ -260,15 +294,14 @@ def train_model():
     for inp, weather_data, labels in my_dataloader:
         inp, weather_data, labels = inp.to(
             device), weather_data.to(device), labels.to(device)
-        with torch.no_grad():
-            out = cnn(inp, weather_data)
+        out = cnn(inp, weather_data)
 
-            sigmoid_layer = torch.nn.Sigmoid()
-            predicted = sigmoid_layer(out).cpu().numpy() > 0.5
-        #  predicted = torch.nn.Sigmoid(out, dim=-1).cpu().numpy() > 0.5
-            actual = labels.cpu().numpy() > 0.5
-            net_pred.append(predicted)
-            true_pred.append(actual)
+        sigmoid_layer = torch.nn.Sigmoid()
+        predicted = sigmoid_layer(out).cpu().numpy() > 0.5
+    #  predicted = torch.nn.Sigmoid(out, dim=-1).cpu().numpy() > 0.5
+        actual = labels.cpu().numpy() > 0.5
+        net_pred.append(predicted)
+        true_pred.append(actual)
 
     y_pred = (net_pred)[0]
     y_true = (true_pred)[0]
@@ -317,6 +350,7 @@ def train_model():
     print(metrics.classification_report(y_true, y_pred, target_names=labels))
 
 
+@torch.no_grad()
 def predict_data(image_path: str, temp: float, humidity: float, dewpoint: float, precipitation: float):
     my_model = Model(2, 1)
     my_model.load_state_dict(torch.load("best_cnn.pt"))
@@ -340,4 +374,5 @@ def predict_data(image_path: str, temp: float, humidity: float, dewpoint: float,
 
 # print(predict_data("images/image_2003_1_8_6_27.5_-112.5.png", 20.0, 2.0, 2.0, 2.0))
 if __name__ == "__main__":
-    train_model()
+    # train_model()
+    test_model()

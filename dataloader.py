@@ -123,18 +123,23 @@ if os.path.exists("new_data.pkl"):
 else:
     new_df = pd.DataFrame(columns=["image", "lat", "long", "temperature",
                                    "humidity", "dewpoint", "precipitation", "ar"])
-
+print(len(new_df))
 try:
     for i, row in df.iterrows():
+        if len(new_df) == len(df):
+            break
         if new_df.loc[new_df["image"] == row["image"]].shape[0] > 0:
             continue
         pathname = row["image"]
+        if (pathname.split("/")[0] == "no_ar_images"):
+            pathname = pathname.split("/")[1]
         pathname = pathname.split("_")
         year, month, day, hour, lat, long = int(pathname[1]), int(pathname[2]), int(
             pathname[3]), int(pathname[4]), row["lat"], row["long"]
+        ar = row["ar"]
         weather_data = api.get_weather_data(year, month, day, lat, long)
-        new_df.append({"image": row["image"], "lat": lat, "long": long,
-                       "temperature": weather_data["hourly"]["temperature_2m"][hour-1], "humidity": weather_data["hourly"]["relativehumidity_2m"][hour-1], "dewpoint": weather_data["hourly"]["dewpoint_2m"][hour-1], "precipitation": weather_data["hourly"]["precipitation"][hour-1]})
+        new_df = new_df.append({"image": row["image"], "lat": lat, "long": long,
+                                "temperature": weather_data["hourly"]["temperature_2m"][hour-1], "humidity": weather_data["hourly"]["relativehumidity_2m"][hour-1], "dewpoint": weather_data["hourly"]["dewpoint_2m"][hour-1], "precipitation": weather_data["hourly"]["precipitation"][hour-1], "ar": ar}, ignore_index=True)
 except Exception as e:
     print(e)
 new_df.to_pickle("new_data.pkl")
