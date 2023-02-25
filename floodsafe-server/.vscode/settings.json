@@ -1,0 +1,4 @@
+{
+  "appService.defaultWebAppToDeploy": "/subscriptions/1ddf084a-be8f-4e26-b4d2-3ad419050b5e/resourceGroups/Floodsafe_group/providers/Microsoft.Web/sites/Floodsafe",
+  "appService.deploySubpath": "."
+}
