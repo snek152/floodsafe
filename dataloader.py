@@ -5,7 +5,6 @@ import operator
 import pandas as pd
 import cv2
 import os
-# from typings import APIResponse
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -27,14 +26,12 @@ def data_loader_with_ar(df):
                 print("file exists")
             else:
                 continue
-                # scraper.save_image(
-                #     lat, lng, zoom=8, date=date_string, pathname=pathname)
+            scraper.save_image(lat, lng, zoom=8, date=date_string, pathname=pathname)
             weather_data = api.get_weather_data(year, month, day, lat, lng)
             yield weather_data, pathname, hour
 
 
 def data_loader_with_no_ar():
-    # with open("processed_weather_data.txt") as file:
     while len(os.listdir("no_ar_images")) < 1156:
         lat, long = tuple(zip(np.random.uniform(-90., 90., 1),
                               np.random.uniform(-180., 180., 1)))[0]
@@ -60,15 +57,14 @@ def data_loader_with_no_ar():
 def save_data():
     # df = pd.DataFrame(
     #     columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar", "hour"])
-    df = pd.read_pickle("data.pkl")
-    # try:
-    #     for data, image, hour in data_loader_with_ar(df):
-    #         # if (df.loc[df["image"] == image].shape[0] > 0):
-    #         #     continue
-    #         df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
-    #                         "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"][hour-1], "temperature_2m": data["hourly"]["temperature_2m"][hour-1], "ar": 1, "hour": hour}, ignore_index=True)
-    # except Exception as e:
-    #     print(e)
+    df = pd.read_pickle("data.pkl") if (os.path.exists("data.pkl")) else pd.DataFrame(
+        columns=["image", "lat", "long", "generationtime_ms", "utc_offset_seconds", "timezone", "elevation", "time", "temperature_2m", "ar", "hour"])
+    try:
+        for data, image, hour in data_loader_with_ar(df):
+            df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
+                            "timezone": data["timezone"], "elevation": data["elevation"], "time": data["hourly"]["time"][hour-1], "temperature_2m": data["hourly"]["temperature_2m"][hour-1], "ar": 1, "hour": hour}, ignore_index=True)
+    except Exception as e:
+        print(e)
     try:
         for data, image, hour in data_loader_with_no_ar():
             df = df.append({"image": image, "lat": data["latitude"], "long": data["longitude"], "generationtime_ms": data["generationtime_ms"], "utc_offset_seconds": data["utc_offset_seconds"],
